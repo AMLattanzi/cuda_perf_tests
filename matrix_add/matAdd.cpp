@@ -4,6 +4,9 @@
 #include <exception>
 #include <cuda_runtime.h>
 
+#define TILEY 32
+#define TILEX 32
+
 // Matrix addition kernel
 // Layout: matrix(row,col)
 __global__
@@ -22,6 +25,8 @@ matrixAdd (int nrow,
   }
 }
 
+
+// Add each column
 __global__
 void
 matrixAddCol (int nrow,
@@ -43,6 +48,8 @@ matrixAddCol (int nrow,
   }
 }
 
+
+// Add each row
 __global__
 void
 matrixAddRow (int nrow,
@@ -64,6 +71,65 @@ matrixAddRow (int nrow,
   }
 }
 
+
+// Add each column with shared memory
+__global__
+void
+matrixAddColShared (int nrow,
+                    int ncol,
+                    double* dA,
+                    double* dB,
+                    double* dC)
+{
+  // Global index owned by this thread
+  int grow = blockDim.y * blockIdx.y + threadIdx.y;
+  int gcol = blockDim.x * blockIdx.x + threadIdx.x;
+  
+  // Shared memory index inside the block
+  int srow = threadIdx.y;
+  int scol = threadIdx.x;
+
+  // Sum on each thread
+  double sum = 0.;
+  
+  // Loop over tiles
+  int ntiley = (nrow+TILEY-1)/TILEY;
+  for (int itiley(0); itiley<ntiley; ++itiley) {
+
+    // Shared memory over the block
+    __shared__ double shared_A[TILEY][TILEX];
+    __shared__ double shared_B[TILEY][TILEX];
+
+    // Local memory index
+    int lrow = srow + itiley*TILEY;
+    int lcol = gcol;
+
+    // Populate shared memory matrix
+    if (grow < nrow && gcol < ncol) {
+      shared_A[srow][scol] = dA[ncol*lrow + lcol];
+      shared_B[srow][scol] = dB[ncol*lrow + lcol];
+    } else {
+      shared_A[srow][scol] = 0.;
+      shared_B[srow][scol] = 0.;
+    }
+
+    // Sync the threads
+    __syncthreads();
+
+    // Sum the tile
+    for (int irow(0); irow<TILEY; ++irow) {
+      sum += shared_A[irow][scol] + shared_B[irow][scol];
+    }
+    
+    // Sync the threads
+    __syncthreads();
+  }
+
+  // Set the value of C
+  dC[ncol*grow + gcol] = sum;
+}
+
+
 // Initialize host data
 // NOTE: Data is contiuous along col
 void
@@ -78,6 +144,7 @@ init_host_data (int nrow,
     }
   }
 }
+
 
 // Test the solution
 int
@@ -99,12 +166,13 @@ test_host_sol (int nrow,
   return 1;
 }
 
+
 int
 main ()
 {
   // Matrix dimensions
-  int nrow = 1<<10;
-  int ncol = 1<<10;
+  int nrow = 1<<12;
+  int ncol = 1<<12;
   int m_size = nrow * ncol * sizeof(double);
   
   // Allocate host data
@@ -135,7 +203,7 @@ main ()
   auto start = std::chrono::high_resolution_clock::now();
   
   // Launch the kernel
-  dim3 block(16,16);
+  dim3 block(TILEX,TILEY);
   dim3 grid((ncol + block.x - 1)/block.x, (nrow + block.y - 1)/block.y);
   matrixAdd<<<grid,block>>>(nrow, ncol, dA, dB, dC);
 
@@ -150,7 +218,6 @@ main ()
   
   // Confirm solution
   int success = test_host_sol(nrow, ncol, hC);
-
 
   // Test row sum
   cudaDeviceSynchronize();
@@ -169,6 +236,16 @@ main ()
   cudaDeviceSynchronize();
   end = std::chrono::high_resolution_clock::now();
   std::cout << "Sum matrix row compute time (ms): "
+            << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count()
+            << std::endl;
+
+  // Test column sum shared
+  cudaDeviceSynchronize();
+  start = std::chrono::high_resolution_clock::now();
+  matrixAddColShared<<<grid,block>>>(nrow, ncol, dA, dB, dC);
+  cudaDeviceSynchronize();
+  end = std::chrono::high_resolution_clock::now();
+  std::cout << "Sum matrix col shared compute time (ms): "
             << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count()
             << std::endl;
   
