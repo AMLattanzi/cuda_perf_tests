@@ -27,9 +27,9 @@ a particular test whose timings are documented in **README** and a shell file **
 compilation.
 ```
 cuda_perf_tests/
-├── README.md
 └── src
-    ├── matrix_add
+    ├── kernel_concur
+    │── matrix_add
     └── matrix_mult
 ```
 
