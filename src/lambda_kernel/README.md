@@ -7,6 +7,6 @@ within a lambda function that is utilized by an abstraction layer.
 
 The following output is obtained on a single A100 GPU on the NERSC Perlmutter machine.
 ```
-Lambda w/out shared compute time (ms): 2483
-Lambda w/    shared compute time (ms): 2859
+Lambda w/out shared compute time (ms): 46
+Lambda w/    shared compute time (ms): 23
 ```
