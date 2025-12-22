@@ -19,6 +19,6 @@ work may be staggered as follows:
 
 The following output is obtained on a single A100 GPU on the NERSC Perlmutter machine.
 ```
-No concurrency compute time (ms): 70
-With concurrency compute time (ms): 37
+No concurrency compute time (ms): 37
+With concurrency compute time (ms): 25
 ```
