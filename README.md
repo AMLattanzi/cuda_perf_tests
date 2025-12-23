@@ -26,12 +26,13 @@ The code tree is given below where each subdirectory inside the **src** director
 a particular test whose timings are documented in **README** and a shell file **make.sh** for
 compilation.
 ```
-../cuda_perf_tests/
+cuda_perf_tests/
 └── src
     ├── kernel_concur
     ├── lambda_kernel
     ├── matrix_add
-    └── matrix_mult
+    ├── matrix_mult
+    └── mpi_host_device
 ```
 
 To compile and run a given example inside the src directory, one may execute the following commands:

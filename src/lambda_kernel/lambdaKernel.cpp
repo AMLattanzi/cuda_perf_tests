@@ -70,7 +70,9 @@ main ()
 
   // Allocate device
   double* d_mat;
+  double* d_out;
   cudaMalloc((void**) &d_mat, size);
+  cudaMalloc((void**) &d_out, size);
 
   // Async copy H2D
   cudaMemcpyAsync(d_mat, h_mat, size, cudaMemcpyHostToDevice);
@@ -86,7 +88,7 @@ main ()
       for (int icol(0); icol<ncol; ++icol) {
         sum += d_mat[ncol*row + icol];
       }
-      d_mat[ncol*row + col] = sum;
+      d_out[ncol*row + col] = sum;
     }
   });
   cudaDeviceSynchronize();
@@ -132,7 +134,7 @@ main ()
         SYNCTHREADS;
       } // for tile
 
-      d_mat[ncol*row + col] = sum;
+      d_out[ncol*row + col] = sum;
     } // row < nrow
   });
   cudaDeviceSynchronize();
@@ -142,7 +144,7 @@ main ()
             << std::endl;
   
   // Async copy D2H
-  cudaMemcpyAsync(h_mat, d_mat, size, cudaMemcpyDeviceToHost);
+  cudaMemcpyAsync(h_mat, d_out, size, cudaMemcpyDeviceToHost);
 
   // Sync
   cudaDeviceSynchronize();
@@ -150,6 +152,7 @@ main ()
   // Clean up
   cudaFreeHost(h_mat);
   cudaFree(d_mat);
+  cudaFree(d_out);
 
   return 0;
 }
