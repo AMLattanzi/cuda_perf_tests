@@ -165,10 +165,8 @@ main ()
   // Allocate host data
   double* hA;
   double* hB;
-  double* hC;
   hA = (double*)malloc(m_size);
   hB = (double*)malloc(m_size);
-  hC = (double*)malloc(m_size);
 
   // Initialize host matrices
   init_host_data(nrow, ncol, hA);
@@ -196,18 +194,12 @@ main ()
 
   // Test naive implementation
   //========================================================
-  // Start timer
+  cudaDeviceSynchronize();
   auto start = std::chrono::high_resolution_clock::now();
-  
-  // Launch the matrix mult kernel
   dim3 block(TILEX,TILEY);
   dim3 grid((ncol + block.x - 1)/block.x, (nrow + block.y - 1)/block.y);
   matrixMult<<<grid,block>>>(nrow, ncol, dA, dB, dC);
-
-  // Copy device to host
-  cudaMemcpy(hC, dC, m_size, cudaMemcpyDeviceToHost);
-  
-  // End timer
+  cudaDeviceSynchronize();
   auto end = std::chrono::high_resolution_clock::now();
   std::cout << "Naive matrix multiplication compute time (ms): "
             << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count()
@@ -261,7 +253,6 @@ main ()
   // Clean up memory
   free(hA);
   free(hB);
-  free(hC);
   cudaFree(dA);
   cudaFree(dB);
   cudaFree(dC);
