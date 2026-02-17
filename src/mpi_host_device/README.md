@@ -11,3 +11,10 @@ CPU-CPU MPI transfer time (us): 74
 GPU/CPU-CPU/GPU MPI transfer time (us): 7254
 GPU-GPU MPI transfer time (us): 278
 ```
+
+The following output is obtained on 2 CPU ranks with 2 H100 GPUs on a single node of the DOE Kestrel machine.
+```
+CPU-CPU MPI transfer time (us): 206
+GPU/CPU-CPU/GPU MPI transfer time (us): 3813
+GPU-GPU MPI transfer time (us): 327
+```
